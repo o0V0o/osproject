@@ -7,7 +7,8 @@ EventQueue = class()
 --adds *event* to the queue
 function EventQueue:add(event)
 	table.insert(self, event)
-	table.sort(self, function(a,b) return a.vtu < b.vtu end)
+	table.sort(self, function(a,b)
+		return a.vtu < b.vtu end)
 end
 --function EventQueue:pop() return Event the next event to trigger
 function EventQueue:pop()

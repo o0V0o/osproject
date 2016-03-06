@@ -4,7 +4,7 @@ local Job = require("Job")
 local RNG = require('rng')
 
 
---local print = function() end --disable debug print statements
+local print = function() end --disable debug print statements
 
 --class RunJobEvent()
 --the event that occurs when a Job is *terminated*. By creating a RunJobEvent, the simulation 'runs the job', and this event will trigger when the job is done processing.
@@ -41,12 +41,11 @@ function RunJobEvent:callback(cVTU, sim)
 	--our hole is free, they may fit!
 	while not sim.pendingQueue:empty() do 
 		local job = sim.pendingQueue:pop() --get the next job
-		if not sim:scheduleJob(cVTU,job) then --try to fit it
-			print(cVTU, "job rescheduled", "blocked", job)
+		local success = sim:scheduleJob(cVTU, job)
+		print(cVTU, "job rescheduled", success, job)
+		if success == 'blocked' then
 			sim.pendingQueue:push(job) --push back onto the queue
 			break --still blocked: can't schedule any more jobs
-		else	--success! try again!
-			print(cVTU, "job rescheduled", "scheduled")
 		end
 	end
 
@@ -73,13 +72,13 @@ end
 --**this event runs the scheduler**
 --*cVTU* = the time, in VTUs that the event will be triggered
 --*sim* = the current simulation state
-function JobPostEvent:callback(cVTU, sim, ...)
+function JobPostEvent:callback(cVTU, sim)
 	if sim.pendingQueue:empty() then
 		local job = Job() --make a new job!
-		if sim:scheduleJob(cVTU,job,...) then --try to schedule it!
-			print(cVTU, "Job posted", "scheduled")
+		local success = sim:scheduleJob(cVTU, job)
+		print(cVTU, "Job posted", success, job)
+		if success == 'scheduled' then
 			-- if this job is at the head of the line, run it now.
-			--
 			if sim.readyQueue:peek() == job then
 				--return 2 events,
 				--	* the next job posting
@@ -87,8 +86,7 @@ function JobPostEvent:callback(cVTU, sim, ...)
 				return {JobPostEvent(),
 					RunJobEvent(cVTU, job)}
 			end
-		else
-			print(cVTU, "Job posted", "waiting", job)
+		elseif success == 'blocked' then
 			sim.pendingQueue:push(job) --store this job for later
 		end
 	else

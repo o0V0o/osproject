@@ -1,7 +1,17 @@
-local m = require("Memory")(0,100)
-local i=0
-for k,v in ipairs(m) do
-	print(k,v)
-	i=i+1
-	if i>100 then break end
+local algorithms = require('schedulingAlgorithms')
+local Simulation = require("simulation")
+local Events = require('Events')
+local sim = Simulation()
+sim.schedulingAlgorithm = algorithms.bestFit
+sim:reset()
+local lastMemConfig = ''
+return function()
+	while true do
+		mem = sim:step()
+		if tostring(mem) ~= lastMemConfig then
+			lastMemConfig = tostring(mem)
+			break
+		end
+	end
+	print(lastMemConfig)
 end

@@ -7,7 +7,7 @@ Event = class()
 --*vtu* = the VTU that the event is triggered
 --*callback* = function(Number cVTU, ...) the function to be called when the event is triggered
 function Event:__init(vtu, callback)
-	assert(vtu, "Event: must specify VTU of event")
+	assert(type(vtu)=='number', "Event: must specify VTU of event")
 	self.vtu = vtu
 	self.callback = callback
 end
@@ -15,7 +15,7 @@ function Event:__call(...)
 	return self:callback(self.vtu, ...) --call the callback with the current VTU time, and any parameters that were passed in
 end
 function Event:__tostring()
-	return "Event: ("..self.vtu..") "..tostring(self.callback)
+	return "Event: ("..tostring(self.vtu)..") "..tostring(self.callback)
 end
 
 return Event

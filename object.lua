@@ -48,6 +48,9 @@ function Object.class( parent ,getter, setter)
 	else
 		objMt.__index = class
 	end
+	-- store some info about the class heirarchy for instanceof checks.
+	objMt.class = class
+	objMt.parent = parent
 
 
 	-- setup the __call metamethod to create a new object, and use the clase's __init constructor.

@@ -64,6 +64,7 @@ function Hole:subdivide(size)
 	if self.size~=size then
 		self.next = Hole(self.start+size, self.size-size, self, self.next)
 	end
+	self.size=size
 end
 
 return Hole

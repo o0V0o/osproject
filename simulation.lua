@@ -4,7 +4,6 @@ local LogEvents = require("Logging")
 local Events = require("Events")
 local EventQueue = require('EventQueue')
 local PendingQueue = require('PendingQueue')
-local Hole = require("Hole")
 local Memory = require("Memory")
 local ReadyQueue = require('ReadyQueue')
 
@@ -67,7 +66,12 @@ function Simulation:step(n)
 	end
 	return self.memory
 end
---functin Simulation:scheduleJob(Number cVTU, Job job, ....) return Boolean/String nil if *job* will fit later, true if *job* was scheduled, "rejected" if *job* was rejected.
+function Simulation:nextEvent()
+	local nextEvent = self.events:pop()
+	for _,event in ipairs(nextEvent(self) or {}) do self.events:add(event) end
+	return nextEvent
+end
+--functin Simulation:scheduleJob(Number cVTU, Job job, ....) return String 'blocked' if *job* will fit later, 'scheduled' if *job* was scheduled, "rejected" if *job* was rejected.
 --schedules *job* using the current scheduling algorithm. 
 --*cVTU* = the current time in VTUs
 --*job* = the job to schedule
@@ -76,11 +80,11 @@ function Simulation:scheduleJob(cVTU,job, ...)
 	local hole = self.memory:addJob(cVTU, job)
 	if not hole then --if we didnt find one, maybe it can fit later?
 		if self.memory:canFit(job) then --if it can, we will run later
-			return nil
+			return 'blocked'
 		else --else reject this job
 			self.rejectedCount = self.rejectedCount + 1
 			--print(cVTU,"scheduling job...rejected", job)
-			return "rejected"
+			return 'rejected'
 		end
 	else
 		 --for logging, keep track of when this job was put into
@@ -88,7 +92,7 @@ function Simulation:scheduleJob(cVTU,job, ...)
 		job.scheduleTime = cVTU
 		table.insert(self.processedJobs, job) --add to a list for logging/debug later
 		self.readyQueue:add(job)
-		return true
+		return 'scheduled'
 	end
 end
 

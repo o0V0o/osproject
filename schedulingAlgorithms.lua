@@ -8,7 +8,7 @@ function algos.bestFit(mem, job)
 	for _,hole in pairs(mem) do --iterate over all holes
 		local err = hole.size - job.size --calculate size difference
 		 --test against current best, and keep it if its better
-		if (not bestErr or bestErr > err) and err>=0 then
+		if (not bestErr or bestErr > err) and err>=0 and not hole.filled then
 			bestErr = err 
 			bestHole = hole
 		end
@@ -37,7 +37,7 @@ function algos.worstFit(mem, job)
 	for _,hole in pairs(mem) do --iterate over all holes
 		local err = hole.size - job.size --calculate size difference
 		 --test against current best and keep it if its 'worse'
-		if (not bestErr or bestErr < err) and err>=0 then
+		if (not bestErr or bestErr < err) and err>=0 and not hole.filled then
 			bestErr = err 
 			bestHole = hole
 		end
