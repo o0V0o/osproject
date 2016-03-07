@@ -2,7 +2,7 @@
 --		Memory.lua
 --		provides the Memory class. Memory keeps track of all available hole and
 --		provides methods to access memory, search memory, and place jobs into
---		memory using a provided scheduling algorithm. 
+--		memory using a provided placement algorithm. 
 --
 --		This module provides the *memory manager* in the form of the
 --		*scheduleJob* function. 
@@ -38,7 +38,7 @@ end
 --*job* = the job to schedule
 function Memory:addJob(cVTU,job)
 	--first, try to find the right hole
-	local hole = self.schedulingAlgorithm(self, job)
+	local hole = self.placementAlgorithm(self, job)
 	-- if we found one, then place the job there.
 	if hole then hole:place(job) end
 	return hole

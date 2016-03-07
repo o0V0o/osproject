@@ -13,14 +13,14 @@
 
 -- load all the required modules before we use them
 require('strict') --throws error on any global variable access.
-local algorithms = require('schedulingAlgorithms')
+local algorithms = require('placementAlgorithms')
 local Simulation = require("Simulation")
 local sim = Simulation()
 
 -- do a simulation with first fit algorithm
 print("--------------- First Fit -------------------")
 print("vtu", "event")
-sim.schedulingAlgorithm = algorithms.firstFit
+sim.placementAlgorithm = algorithms.firstFit
 sim:simulate(5000)
 sim:report('firstfit.csv')
 
@@ -28,7 +28,7 @@ sim:report('firstfit.csv')
 print(string.rep('\n', 5))
 print("--------------- Best Fit -------------------")
 print("vtu", "event")
-sim.schedulingAlgorithm = algorithms.bestFit
+sim.placementAlgorithm = algorithms.bestFit
 sim:simulate(5000)
 sim:report('bestfit.csv')
 
@@ -36,6 +36,6 @@ sim:report('bestfit.csv')
 print(string.rep('\n', 5))
 print("--------------- Worst Fit -------------------")
 print("vtu", "event")
-sim.schedulingAlgorithm = algorithms.worstFit
+sim.placementAlgorithm = algorithms.worstFit
 sim:simulate(5000)
 sim:report('worstfit.csv')

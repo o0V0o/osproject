@@ -1,11 +1,11 @@
 -- steps through the simulation, pausing every time the memory map changes.
-local algorithms = require('schedulingAlgorithms')
+local algorithms = require('placementAlgorithms')
 local Simulation = require("Simulation")
 local Events = require('Events')
 local RNG = require('rng')
 
 local sim = Simulation()
-sim.schedulingAlgorithm = algorithms.bestFit
+sim.placementAlgorithm = algorithms.bestFit
 sim:reset()
 for i=1,10000 do
 	sim.logs.rngtest[i] = RNG(0,100,10)

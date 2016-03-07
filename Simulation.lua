@@ -48,7 +48,7 @@ function Simulation:reset()
 	 --we have a single hole at the start, at position 0, taking up the
 	 --entire memory, minus the portion reserved for the OS
 	self.memory = Memory(0,specs.memorySize - specs.osSize)
-	self.memory.schedulingAlgorithm = self.schedulingAlgorithm
+	self.memory.placementAlgorithm = self.placementAlgorithm
 	self.events = EventQueue()
 	--setup our job queues.
 	self.pendingQueue = PendingQueue() --(not a real queue)
