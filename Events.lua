@@ -2,6 +2,7 @@ local class = require("object") --we will use a quick OOP implementation I wrote
 local Event = require("Event")
 local Job = require("Job")
 local RNG = require('rng')
+local specs = require('specifications')
 
 
 local print = function() end --disable debug print statements
@@ -63,7 +64,7 @@ JobPostEvent = class(Event)
 --*vtu* the time in VTUs the job was posted. if no time is specified, the time will be determined from a random offset to the *last* job posted.
 function JobPostEvent:__init(vtu)
 	 --if no time specified, create the *next* job
-	vtu = vtu or (lasttime + RNG(1,10,1))
+	vtu = vtu or (lasttime + RNG(table.unpack(specs.jobIAT)))
 	lasttime = vtu
 	self.super(self, vtu, jobPosted) --call parent constructor
 end

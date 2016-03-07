@@ -1,5 +1,6 @@
 local class = require("object") --we will use a quick OOP implementation I wrote a while back.
 local RNG = require("rng")
+local specs = require('specifications')
 
 -- class Job()
 -- represents a Job. jobs don't really do anything by themselves...
@@ -9,8 +10,8 @@ local id = 1 --keep track of job order for debug/logging purposes
 --creates a Job of the given size and duration, or a ramdom job if not given.
 function Job:__init(size, duration)
 	-- call the RNG to get 'random' job stats if not passed as arguments
-	self.size = size or RNG(50,300,10)
-	self.duration = duration or RNG(5,60,5)
+	self.size = size or RNG(table.unpack(specs.jobSize))
+	self.duration = duration or RNG(table.unpack(specs.jobDuration))
 	self.id = id
 	id=id+1
 end
