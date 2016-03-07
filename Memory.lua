@@ -28,7 +28,7 @@ end
 --*job* = the job to try and fit in memory
 function Memory:canFit(job)
 	for _,partition in ipairs(self) do --iterate over all partitions...
-		if partition.size-job.size>=0 then return partition end --test if large enough
+		if partition.size-job.size>=0 then return partition end 
 	end
 end
 
@@ -39,9 +39,8 @@ end
 function Memory:addJob(cVTU,job)
 	--first, try to find the right hole
 	local hole = self.schedulingAlgorithm(self, job)
-	if hole then
-		hole:place(job)
-	end
+	-- if we found one, then place the job there.
+	if hole then hole:place(job) end
 	return hole
 end
 
@@ -57,11 +56,13 @@ end
 
 --function Memory:fragmentation() return Number the current memory fragmentation in bytes
 function Memory:fragmentation()
-	local count = 0
+	local count = 0 --amount of fragmentation
+	--iterate over all partitions and add partitions that are too small to fit
+	--any jobs in the future.
 	for _,partition in ipairs(self) do
 		if partition.size < 50 then count=count+partition.size end
 	end
-	return count*1024
+	return count*1024 --(convert from KiB to bytes)
 end
 
 --function Memory:__ipairs() return Function
@@ -92,7 +93,7 @@ function Memory:__tostring()
 		if partition.filled then
 			fill = '+'
 		end
-		if partition.filled == CPU then
+		if partition.filled and partition.filled.running then
 			fill = '*'
 		end
 		local block = string.rep(fill, math.floor(partition.size/10))

@@ -21,6 +21,7 @@ function RunJobEvent:__init(startTime,job)
 	self.hole = job.hole			--save a ref. to the hole
 	self.job = job					--save a ref. to the job
 	self.job.startTime = startTime	--save for later logging
+	self.job.running = true 		--indicate that this job is now running on CPU
 	--calculate start time based on when the job expires
 	self.super(self, startTime+self.job.duration) 
 end
@@ -29,6 +30,7 @@ end
 --event callback function to *terminate* the job
 function RunJobEvent:callback(cVTU, sim)
 	print(cVTU,"Job funished!", self.job)
+	self.job.running = nil --no longer running...
 	self.hole.filled = nil --free this hole! now more jobs can fit in this hole!
 	self.job.hole = nil --the job is done, but there is still a reference in the global job list for logging purposes. This frees the Hole object so it can be GC'd
 	self.job.finishTime = cVTU --keep track of finish time.
