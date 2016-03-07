@@ -1,4 +1,19 @@
-local class = require("object") --we will use a quick OOP implementation I wrote a while back.
+--[[
+--			PendingQueue.lua
+--			provides the PendingQueue class. PendingQueue keeps track of the
+--			jobs that are pending, without actually knowing about the jobs.
+--			In essence, it acts similar to a counter, keeping track of the
+--			number of pending jobs so that we know how many jobs we can
+--			generate before we are looking at jobs from the future.
+--
+--			this class is equivalent to the "catching up" approach discussed
+--			in class, where, instead of explicitly checking if the next job is
+--			in the future, we just keep track of how many jobs were in the past. 
+--
+--			]]
+
+--load all required modules before they are used.
+local class = require("object")
 local Job = require('Job')
 
 -- class PendingQueue()
@@ -7,6 +22,7 @@ local Job = require('Job')
 -- this class is equivalent to the "catching up" approach discussed in class, where, instead of explicitly checking if the next job is in the future, we just keep track of how many jobs were in the past. 
 local PendingQueue = class()
 PendingQueue.n=0 --inherited value for the number of jobs waiting
+
 --function PendingQueue:pop() return Job the next job waiting to be scheduled
 function PendingQueue:pop()
 	--return the job stashed here, or make a new one.
@@ -14,7 +30,8 @@ function PendingQueue:pop()
 	self.head = nil
 	return next
 end
---function PendingQueue:push(Job job)
+
+--function PendingQueue:push([Job job])
 --save a job for later (only *one*)
 --*job* = the job to store
 function PendingQueue:push(job)
@@ -22,9 +39,10 @@ function PendingQueue:push(job)
 	self.head = self.head or job --stash the first job
 	self.n=self.n+1 --and increment our total count
 end
+
 --functin PendingQueue:empty() return Boolean true iff the queue is empty
 function PendingQueue:empty()
-	return self.n==0
+	return self.n==0 --do we have any jobs??
 end
 
 return PendingQueue

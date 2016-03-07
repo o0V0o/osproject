@@ -1,4 +1,13 @@
-local algos = {}
+--[[
+--		schedulingAlgorithms.lua
+--		provides the three memory scheduling algorithms that we are to examine.
+--		* firstFit
+--		* bestFit
+--		* worstFit
+--		]]
+
+
+local algos = {} --make a local table to place the three functions
 
 --function bestFit(Memory mem, Job job) return [Hole] the 'best fit' hole for this job, or nil if hole is empty/does not exist
 --*mem* = the memory object that contains all the partitions

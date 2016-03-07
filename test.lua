@@ -1,3 +1,4 @@
+-- steps through the simulation, pausing every time the memory map changes.
 local algorithms = require('schedulingAlgorithms')
 local Simulation = require("Simulation")
 local Events = require('Events')

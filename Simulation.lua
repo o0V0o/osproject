@@ -1,4 +1,13 @@
-local class = require("object") --we will use a quick OOP implementation I wrote a while back.
+--[[
+--		Simulation.lua
+--		provides the Simulation class. Simulation is the highest level object
+--		in our simulation. It represents the entire virtual machine, and
+--		functions such as step, reset, and simulate to run the simulation.
+--		]]
+
+
+--load all required modules before we use them.
+local class = require("object")
 local Event = require("Event")
 local LogEvents = require("Logging")
 local Events = require("Events")
@@ -7,19 +16,13 @@ local PendingQueue = require('PendingQueue')
 local Memory = require("Memory")
 local ReadyQueue = require('ReadyQueue')
 local RNG = require('rng')
-
---[[
---function table.idx)Table table, Value value) return Number the index into *table* that contains the given element, *value*
-function table.idx(table, value)
-	for i,v in ipairs(table) do
-		if v==value then return i end
-	end
-end
---]]
+local specs = require('specifications')
+--unpack the Events table into the local scope.
+local RunJobEvent, JobPostEvent = Events.RunJobEvent, Events.JobPostEvent
 
 --class Simulation()
 --this is the main class that represents the state of the simulation.
-Simulation = class()
+local Simulation = class()
 --constructor Simulation() 
 function Simulation:__init()
 	self:reset()
@@ -44,14 +47,14 @@ function Simulation:reset()
 
 	 --we have a single hole at the start, at position 0, taking up the
 	 --entire memory, minus the portion reserved for the OS
-	self.memory = Memory(0,2000-200)
+	self.memory = Memory(0,specs.memorySize - specs.osSize)
 	self.memory.schedulingAlgorithm = self.schedulingAlgorithm
 	self.events = EventQueue()
 	--setup our job queues.
 	self.pendingQueue = PendingQueue() --(not a real queue)
 	self.readyQueue = ReadyQueue()
 	
-	--logging values
+	--add some logging values
 	self.rejectedCount = 0 --keep track of rejected jobs for logs
 	self.processedJobs = {} --a list of EVERY job that was ever scheduled
 	--add initial events
@@ -76,10 +79,11 @@ end
 --records all of the logging values to respective CSV file that
 --can be imported into a spreadsheet.
 function Simulation:report(fname)
-	local last,max = {}, {}
-	local delim = ","
-	--try to open the file
-	local file = io.open(fname, 'w')
+	local last = {}--stores the last used intex for a given table
+	local max = {} --stores the maximum index for a given table
+	local delim = ","--the CSV format delimiter.
+	local file = io.open(fname, 'w') --attempt to open the file
+
 	assert(file, "could not open file "..fname)
 
 	--write the header values out to the file
@@ -92,7 +96,7 @@ function Simulation:report(fname)
 	file:write("\n")
 	--keep iterating until there is no more data in *any* of the
 	--logs.
-	local done = false
+	local done = false --indicates whether we are done with the csv file.
 	while not done do
 		done = true
 		--for each row, iterate over all the logs
@@ -121,7 +125,7 @@ end
 --*maxVTU* = the time, in VTUs, to end the simulation
 function Simulation:simulate(maxVTU)
 	self:reset()
-	local simulating = true
+	local simulating = true --keep track of whether we are still simulating.
 	 --this event will stop the simulation by set the upvalue 'simulating'
 	self.events:add( Event(maxVTU+1, function() simulating = false end))
 	-- and now we keep stepping the simulation until we're done.
@@ -132,7 +136,7 @@ end
 --simulate a certain number of events
 --*n* = the number of events to simulate
 function Simulation:step(n)
-	n=n or 1 --min of 1 steps
+	n=n or 1 --the number of steps. default to 1.
 	while n>0 do --keep simulating until we run out of events
 		--call the next event, and then put all of the returned
 		--events back info the event queue.
@@ -147,7 +151,7 @@ end
 --*job* = the job to schedule
 function Simulation:scheduleJob(cVTU,job, ...)
 	--first, try to find the right hole
-	local hole = self.memory:addJob(cVTU, job)
+	local hole = self.memory:addJob(cVTU, job) 
 	if not hole then --if we didnt find one, maybe it can fit later?
 		if self.memory:canFit(job) then --if it can, we will run later
 			return 'blocked'
