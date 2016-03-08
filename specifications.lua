@@ -11,5 +11,5 @@ return {
 	jobDuration = {5,60,5},
 	memorySize = 2000,
 	osSize = 200,
-	samplePeriod = {start=1000,finish=4000}
+	samplePeriod = {start=1000,stop=4000}
 }

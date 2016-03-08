@@ -10,14 +10,18 @@ local LogEvent = class(Event)
 -- *start* = VTU of the event
 -- *logfunc* = callback function of the event
 -- *period* = period in VTU of the event
-function LogEvent:__init(start, logfunc, period)
+function LogEvent:__init(start, logfunc, period, stop)
 	start = start or 0 --if start time is not defined, default to 0
 	local function cb(...) --setup a repeating callback.
 		local events = logfunc(...) or {}
-		table.insert(events, LogEvent(start+period, logfunc, period))
+		table.insert(events, LogEvent(start+period, logfunc, period, stop))
 		return events
 	end
-	self:super(start, cb)
+	if not stop or start<stop then
+		self:super(start, cb)
+	else
+		self:super(start, function() end) --do nothing.
+	end
 end
 
 --function average(Table items, Function field) return Number the average of all the elements in *items* returned by the *field* function
@@ -111,15 +115,16 @@ end
 --note that it is a function, not a table, so that it 
 --does not get cached by 'require'. that would not work.
 return function()
-	return {LogEvent(specs.samplePeriod.start, storage, 100),
-		LogEvent(specs.samplePeriod.start, fragmentation, 100),
-		LogEvent(specs.samplePeriod.start, holesize, 100),
-		LogEvent(specs.samplePeriod.start, partitionsize, 100),
+	return {LogEvent(specs.samplePeriod.start, storage, 100, specs.samplePeriod.stop),
+		LogEvent(specs.samplePeriod.start, fragmentation, 100,specs.samplePeriod.stop),
+		LogEvent(specs.samplePeriod.start, holesize, 100, specs.samplePeriod.stop),
+		LogEvent(specs.samplePeriod.start, partitionsize, 100, specs.samplePeriod.stop),
 		LogEvent(specs.samplePeriod.start, rejected, 1000),
-		LogEvent(specs.samplePeriod.start+1, function()print"\n"end, 100), --seperates logging entries
+		LogEvent(specs.samplePeriod.start+1, function()print""end, 100, specs.samplePeriod.stop), --seperates logging entries
 		LogEvent(specs.samplePeriod.start, realStorage, 10),
-		Event(specs.samplePeriod.finish, avgStorage),
+		Event(specs.samplePeriod.stop+500, function()print""end), --seperate last entry
+		Event(specs.samplePeriod.stop, avgStorage),
 		Event(specs.samplePeriod.start, resetJobs),
-		Event(specs.samplePeriod.finish, jobstats)}
+		Event(specs.samplePeriod.stop, jobstats)}
 end
 	
