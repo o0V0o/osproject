@@ -1,10 +1,11 @@
 --[[
---		EventQueue.lua
---		provides the EventQueue class. EventQueue provides a simple, ordered
---		queue for events, and methods to add new events, and pop events off the
---		queue.
+--	EventQueue.lua
 --
---		]]
+--	provides the EventQueue class. EventQueue provides a simple, ordered
+--	queue for events, and methods to add new events, and pop events off the
+--	queue.
+-
+--]]
 
 
 --load all required modules before we use them.

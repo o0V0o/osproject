@@ -1,10 +1,11 @@
 --[[
---		schedulingAlgorithms.lua
---		provides the three memory scheduling algorithms that we are to examine.
---		* firstFit
---		* bestFit
---		* worstFit
---		]]
+--	schedulingAlgorithms.lua
+--	provides the three memory scheduling algorithms that we are to examine.
+--
+--	* firstFit
+--	* bestFit
+--	* worstFit
+--	]]
 
 
 local algos = {} --make a local table to place the three functions

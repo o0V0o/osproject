@@ -1,9 +1,10 @@
 --[[
---		Simulation.lua
---		provides the Simulation class. Simulation is the highest level object
---		in our simulation. It represents the entire virtual machine, and
---		functions such as step, reset, and simulate to run the simulation.
---		]]
+--	Simulation.lua
+--
+--	provides the Simulation class. Simulation is the highest level object
+--	in our simulation. It represents the entire virtual machine, and
+--	functions such as step, reset, and simulate to run the simulation.
+--	]]
 
 
 --load all required modules before we use them.
@@ -12,14 +13,16 @@ local Event = require("Event")
 local LogEvents = require("Logging")
 local Events = require("Events")
 local EventQueue = require('EventQueue')
-local PendingQueue = require('PendingQueue')
 local Memory = require("Memory")
+local Disk = require("Disk")
+local WaitingQueue = require('WaitingQueue')
 local ReadyQueue = require('ReadyQueue')
 local RNG = require('rng')
 local specs = require('specifications')
 --unpack the Events table into the local scope.
 local RunJobEvent, JobPostEvent = Events.RunJobEvent, Events.JobPostEvent
-
+local RoundRobinEvent = Events.RoundRobinEvent
+local CompactionEvent = Events.CompactionEvent
 --class Simulation()
 --this is the main class that represents the state of the simulation.
 local Simulation = class()
@@ -40,7 +43,7 @@ function Simulation:reset()
 	--able to loop over every log item to generate a report
 	--also we keep track of the largest integer key that is set
 	--so that we know how big the table is.
-	self. logs = setmetatable({}, { __index=function(t,k)
+	self.logs = setmetatable({}, { __index=function(t,k)
 			t[k]=setmetatable({maxn=0}, {__newindex=function(t,k,v) rawset(t,k,v);if type(k)=='number' and t.maxn<k then rawset(t,'maxn', k) end end})
 			return t[k]
 	end})
@@ -51,8 +54,9 @@ function Simulation:reset()
 	self.memory.placementAlgorithm = self.placementAlgorithm
 	self.events = EventQueue()
 	--setup our job queues.
-	self.pendingQueue = PendingQueue() --(not a real queue)
 	self.readyQueue = ReadyQueue()
+	self.waitingQueue = WaitingQueue()
+	self.disk = Disk(specs.diskSize)
 	
 	--add some logging values
 	self.rejectedCount = 0 --keep track of rejected jobs for logs
@@ -60,9 +64,20 @@ function Simulation:reset()
 	--add initial events
 	JobPostEvent(0) --reset the last job arrival time to 0, but don't add the event...
 	self.events:add( JobPostEvent() ) --add our first job!
+	self.events:add( RoundRobinEvent( 10, specs.timeQuantum ))
+	self.events:add( CompactionEvent( 100, 500))
 	-- add all the logging events 
 	for _,event in pairs( LogEvents() ) do
 		self.events:add(event)
+	end
+	--allow other startup events to be registered later
+	--and injected into this object *cause we can!*
+	for _,event in pairs(self.startupEvents or {}) do
+		if type(event) == "function" then
+			event(self)
+		else
+			self.events:add( events )
+		end
 	end
 end
 
@@ -86,6 +101,7 @@ function Simulation:report(fname)
 
 	assert(file, "could not open file "..fname)
 
+
 	--write the header values out to the file
 	for parameter, values in pairs(self.logs) do
 		file:write("time")
@@ -93,6 +109,7 @@ function Simulation:report(fname)
 		file:write(parameter)
 		file:write(delim)
 	end
+	file:write(tostring(self.logs)..tostring(self.logs.fragmentation))
 	file:write("\n")
 	--keep iterating until there is no more data in *any* of the
 	--logs.
@@ -145,24 +162,42 @@ function Simulation:step(n)
 	end
 end
 
+--function Simulation:onFreeMemory(Number cVTU)
+--should be run anytime new free memory is available.
+function Simulation:onFreeMemory(cVTU)
+	--there is some free memory, maybe we can fit some jobs?
+	--give the disk jobs priority on free memory
+	self.disk:schedule(cVTU, self)
+	--then attempt to schedule waiting jobs
+	self.waitingQueue:schedule(cVTU, self)
+end
+
 --functin Simulation:scheduleJob(Number cVTU, Job job, ....) return String 'blocked' if *job* will fit later, 'scheduled' if *job* was scheduled, "rejected" if *job* was rejected.
 --schedules *job* using the current scheduling algorithm. 
 --*cVTU* = the current time in VTUs
 --*job* = the job to schedule
-function Simulation:scheduleJob(cVTU,job, ...)
+function Simulation:scheduleJob(cVTU,job)
 	--first, try to find the right hole
 	local hole = self.memory:addJob(cVTU, job) 
 	if not hole then --if we didnt find one, maybe it can fit later?
+		if self.immediateCompaction and not self.memory.compacted then
+			--print("compact at ", cVTU, self.memory.compacted)
+			self.memory:compact() --note that this may do nothing
+								-- if compaction has already been done
+								-- and the memory config has not changed.
+			--and now retry to schedule.
+			return self:scheduleJob(cVTU, job)
+		end
 		if self.memory:canFit(job) then --if it can, we will run later
 			return 'blocked'
 		else --else reject this job
 			self.rejectedCount = self.rejectedCount + 1
-			--print(cVTU,"scheduling job...rejected", job)
 			return 'rejected'
 		end
 	else
 		 --for logging, keep track of when this job was put into
 		 --the ready queue.
+		 assert(cVTU, "current time needed")
 		job.scheduleTime = cVTU
 		table.insert(self.processedJobs, job) --add to a list for logging/debug later
 		self.readyQueue:add(job)

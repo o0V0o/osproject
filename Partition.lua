@@ -1,8 +1,9 @@
 --[[
---		Partition.lua
---		provides the Partition class. Partition represents a memory partition,
---		and provides methods to place jobs into a partition, and subdivide a
---		partition, 
+--	Partition.lua
+--
+--	provides the Partition class. Partition represents a memory partition,
+--	and provides methods to place jobs into a partition, and subdivide a
+--	partition, 
 --]]
 
 
@@ -68,9 +69,41 @@ end
 function Partition:subdivide(size)
 	--check if we even have to subdivide.
 	if self.size~=size then
+		local forward = self.next
 		self.next = Partition(self.start+size, self.size-size, self, self.next)
+		if forward then
+			forward.prev = self.next
+		end
 	end
 	self.size=size
+end
+
+--function Partition:merge(Partition part) return Partition sel
+--merge two empty adjacent partitions
+function Partition:merge(partition)
+	--make sure self is before partition
+	if partition.start < self.start then
+		self, partition = partition, self
+	end
+	assert(self.next, "partition must point!")
+	assert(self.next == partition, "partitions must be adjacent!")
+	assert(not partition.filled, "partitions must be empty!")
+	--fix pointers...
+	self.next = partition.next
+	if self.next then self.next.prev = self end
+	--and update size
+	self.size = self.size + partition.size
+	return self
+end
+
+--function Partition:attach(Partition next)
+--use *next* for the next partition, and update
+--its starting point and pointers
+--This is analagous to moving memory blocks
+function Partition:compact(partition)
+	self.next = partition
+	partition.prev = self
+	partition.start = self.start+self.size
 end
 
 return Partition

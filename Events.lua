@@ -1,3 +1,11 @@
+--[[
+--	Events.lua
+--
+--	This module provides the standard events that the simulation needs
+--	to post/processes/run jobs through our discrete event system.
+--]]
+
+
 --load required modules...
 local class = require("object")
 local Event = require("Event")
@@ -5,7 +13,7 @@ local Job = require("Job")
 local RNG = require('rng')
 local specs = require('specifications')
 
-local print = function() end --disable debug print statements
+--local print = function() end --disable debug print statements
 
 --class RunJobEvent()
 --the event that occurs when a Job is *terminated*. By creating a RunJobEvent, the simulation 'runs the job', and this event will trigger when the job is done processing.
@@ -25,7 +33,7 @@ function RunJobEvent:__init(startTime,job)
 	--calculate start time based on when the job expires
 	self.super(self, startTime+self.job.duration) 
 end
-
+--[[
 --function RunJobEvent:callback(Number cVTU, Simulation sim) return {Event}
 --event callback function to *terminate* the job
 function RunJobEvent:callback(cVTU, sim)
@@ -58,6 +66,50 @@ function RunJobEvent:callback(cVTU, sim)
 		return {RunJobEvent(cVTU,sim.readyQueue:peek())}
 	end
 end
+--]]
+
+--class RoundRobinEvent()
+--run a job for a specified period of time, then run the *next* job
+local RoundRobinEvent = class(Event)
+function RoundRobinEvent:__init(vtu, quantum)
+	assert(quantum, "must supply time quantum")
+	self.quantum = quantum
+	self.super(self, vtu) --call parent constructor
+end
+--execute one phase of round robin scheduling
+function RoundRobinEvent:callback(cVTU, sim)
+	local job = sim.readyQueue:peek()
+	local used
+	if job then
+		if job.remaining <= 0 then --job is done, remove from queue
+			sim.memory:evictJob(job, cVTU, sim)
+		else
+			sim.readyQueue:next() --job is not done, but still rotate queue
+		end
+		local nextJob = sim.readyQueue:peek()
+		job.running = false
+		nextJob.running = true
+		used = nextJob:run(cVTU, self.quantum)
+	else
+		used = self.quantum --no job, just idle for a bit,
+	end
+	return {RoundRobinEvent( cVTU+used , self.quantum)}
+end
+
+
+
+--class CompactionEvent(Event)
+--execute a memory compaction in a specified interval
+local CompactionEvent = class(Event)
+function CompactionEvent:__init(vtu, interval)
+	self.interval = interval
+	self.super(self,vtu)
+end
+function CompactionEvent:callback(cVTU, sim)
+	sim.memory:compact()
+	sim:onFreeMemory(cVTU)
+	return {CompactionEvent(cVTU + self.interval, self.interval)}
+end
 
 -- class JobPostEvent()
 -- posts a job, runs the scheduler, and creates a new event for the *next* job to be posted
@@ -70,7 +122,7 @@ function JobPostEvent:__init(vtu)
 	 --if no time specified, create the *next* job
 	vtu = vtu or (lasttime + RNG(table.unpack(specs.jobIAT)))
 	lasttime = vtu --update the last job arrival time
-	self.super(self, vtu, jobPosted) --call parent constructor
+	self.super(self, vtu) --call parent constructor
 end
 
 --function JobPostEvent:callback(Number cVTU, Simulation sim, ...) return {Event}
@@ -79,30 +131,22 @@ end
 --*cVTU* = the time, in VTUs that the event will be triggered
 --*sim* = the current simulation state
 function JobPostEvent:callback(cVTU, sim)
-	if sim.pendingQueue:empty() then --only post if we arn't blocked.
-		local job = Job() --make a new job!
-		local success = sim:scheduleJob(cVTU, job)
-		print(cVTU, "Job posted", success, job)
-		if success == 'scheduled' then
-			-- if this job is at the head of the line, run it now.
-			if sim.readyQueue:peek() == job then
-				--return 2 events,
-				--	* the next job posting
-				--	* the job termination event
-				return {JobPostEvent(),
-					RunJobEvent(cVTU, job)}
-			end
-		elseif success == 'blocked' then
-			sim.pendingQueue:push(job) --store this job for later
-		end
-	else --if we *are* blocked, then push onto the pending Queue.
-		print(cVTU, "Job posted", "blocked")
-		sim.pendingQueue:push() --store this job for later
+	--we know that no jobs on the disk can fit right now,
+	--otherwise they would have already been scheduled.
+	--print("job posted")
+	--so, check if this job is still pending.
+	if sim.waitingQueue:empty() then --only post if there is no line
+		local job = Job()
+		sim.waitingQueue:push(job)
+	else
+		sim.waitingQueue:push() --add it to the pending queue...
 	end
-	--return 1 event:
-	--	* the next job posting
+	--memory config has not changed, so no need to check disk
+	sim.waitingQueue:schedule(cVTU, sim)
 	return {JobPostEvent()}
 end
 
 return {RunJobEvent=RunJobEvent,
+	RoundRobinEvent=RoundRobinEvent,
+	CompactionEvent=CompactionEvent,
 	JobPostEvent=JobPostEvent} --return the events declared in this module

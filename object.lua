@@ -1,12 +1,13 @@
 --[[
 --		object.lua
+--
 --		provides an OOP implementation for lua, written in lua, that uses
 --		classic heirarchical single inheritance via metatables. 
 --
 --]]
 local Object = {} --make a place to store functions
-local metamethods = { -- all metamethods except __index
-  '__add', '__call', '__concat', '__div', '__le', '__lt', '__mod', '__mul', '__pow', '__sub', '__tostring', '__unm', '__len'
+local metamethods = { -- all metamethods except __index that we wish to inherit.
+  '__add', '__call', '__concat', '__div', '__le', '__lt', '__mod', '__mul', '__pow', '__sub', '__tostring', '__unm', '__len', '__ipairs', '__pairs'
 } 
 --function Object.class( parent, [getter], [setter] ) return Class a new Class object. When called, a Class object returns an instance of that object. 
 function Object.class( parent ,getter, setter)

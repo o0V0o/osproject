@@ -24,5 +24,7 @@ return function()
 			break
 		end
 	end
-	print(lastMemConfig)
+	--print(lastMemConfig)
+	--print(sim.readyQueue)
+	--print(sim.disk.queue)
 end
